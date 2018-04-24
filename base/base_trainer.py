@@ -3,19 +3,21 @@ import math
 import logging
 import torch
 from utils.util import ensure_dir
+from tqdm import tqdm
 
 
 class BaseTrainer:
     """
     Base class for all trainers
     """
-    def __init__(self, model, loss, metrics, optimizer, epochs,
+    def __init__(self, model, loss, metrics, optimizer, scheduler, epochs,
                  save_dir, save_freq, resume, verbosity, training_name,
                  with_cuda, train_logger=None, monitor='loss', monitor_mode='min'):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.loss = loss
         self.metrics = metrics
+        self.scheduler = scheduler
         self.optimizer = optimizer
         self.epochs = epochs
         self.save_freq = save_freq
@@ -41,6 +43,7 @@ class BaseTrainer:
         Full training logic
         """
         for epoch in range(self.start_epoch, self.epochs+1):
+
             result = self._train_epoch(epoch)
             log = {'epoch': epoch}
             for key, value in result.items():
@@ -90,7 +93,7 @@ class BaseTrainer:
             'monitor_best': self.monitor_best,
         }
         filename = os.path.join(self.checkpoint_dir,
-                                'checkpoint_epoch{:02d}_loss_{:.5f}.pth.tar'.format(epoch, loss))
+                                'checkpoint_epoch{:02d}.pth.tar'.format(epoch))
         torch.save(state, filename)
         if save_best:
             os.rename(filename, os.path.join(self.checkpoint_dir, 'model_best.pth.tar'))
